@@ -10,7 +10,7 @@ public class HueDKException extends Exception {
 	private static final long serialVersionUID = 224265585642285196L;
 
 	/**
-	 * Instantiates a new communication exception.
+	 * Instantiates a new hue DK exception.
 	 *
 	 * @param message
 	 *            the message
@@ -20,7 +20,7 @@ public class HueDKException extends Exception {
 	}
 
 	/**
-	 * Instantiates a new communication exception.
+	 * Instantiates a new hue DK exception.
 	 *
 	 * @param message
 	 *            the message

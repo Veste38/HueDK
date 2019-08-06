@@ -1,4 +1,4 @@
-package be.sleroy.huedk.dto;
+package be.sleroy.huedk.dto.connection;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class HueAccessPoint {
 
+	@JsonProperty(value = "id")
 	private String id;
 	
 	@JsonProperty(value = "internalipaddress")
