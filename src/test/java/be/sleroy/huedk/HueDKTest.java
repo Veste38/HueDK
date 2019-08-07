@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
+import be.sleroy.huedk.dto.light.HueLight;
 import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
 
@@ -53,6 +54,13 @@ public class HueDKTest {
 					LOGGER.debug(exc.getMessage());
 				}
 				HueDK.getInstance().connect(accessPointsList.get(0), userId, 10000);
+				
+				List<HueLight> lights = HueDK.getInstance().getLights();
+				if (lights != null && lights.size() > 0) {
+					for (HueLight light : lights) {
+						LOGGER.debug(light.toString());
+					}
+				}
 			}
 		} catch (HueDKConnectionException ex) {
 			LOGGER.error(ex.getMessage(), ex);

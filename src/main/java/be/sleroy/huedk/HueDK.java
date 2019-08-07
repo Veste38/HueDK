@@ -1,7 +1,9 @@
 package be.sleroy.huedk;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
@@ -16,8 +18,11 @@ import org.glassfish.jersey.client.JerseyWebTarget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.internal.HueResponse;
+import be.sleroy.huedk.dto.light.HueLight;
 import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
 
@@ -34,6 +39,8 @@ public class HueDK {
 	private static int DEFAULT_TIMEOUT = 30000;
 	private static String DEFAULT_DEVICETYPE = "HueDK#Default";
 
+	private static String PATH_LIGHTS = "lights";
+
 	private static HueDK instance = null;
 
 	private static HueAccessPoint ACCESSPOINT = null;
@@ -47,6 +54,16 @@ public class HueDK {
 	}
 
 	private HueDK() {
+	}
+
+	private JerseyClient getJerseyClient(Integer connectionTimeout, Integer readTimeout) {
+		JerseyClient client = JerseyClientBuilder.createClient();
+
+		// default timeout value for all requests
+		client.property(ClientProperties.CONNECT_TIMEOUT, connectionTimeout != null ? connectionTimeout : DEFAULT_TIMEOUT);
+		client.property(ClientProperties.READ_TIMEOUT, readTimeout != null ? readTimeout : DEFAULT_TIMEOUT);
+
+		return client;
 	}
 
 	public List<HueAccessPoint> findBridges() throws HueDKException {
@@ -66,11 +83,7 @@ public class HueDK {
 
 		JerseyClient client = null;
 		try {
-			client = JerseyClientBuilder.createClient();
-
-			// default timeout value for all requests
-			client.property(ClientProperties.CONNECT_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
-			client.property(ClientProperties.READ_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
+			client = getJerseyClient(timeout, timeout);
 
 			JerseyWebTarget webTarget = client.target(discoverURL);
 
@@ -129,11 +142,7 @@ public class HueDK {
 
 			Long runDate = (new Date()).getTime();
 
-			client = JerseyClientBuilder.createClient();
-
-			// default timeout value for all requests
-			client.property(ClientProperties.CONNECT_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
-			client.property(ClientProperties.READ_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
+			client = getJerseyClient(timeout, timeout);
 
 			JerseyWebTarget webTarget = client.target(String.format("http://%s/api", accessPoint.getIp()));
 
@@ -186,16 +195,12 @@ public class HueDK {
 
 	public void connect(HueAccessPoint accessPoint, String userId) throws HueDKException, HueDKConnectionException {
 		connect(accessPoint, userId, DEFAULT_TIMEOUT);
-	}	
-	
+	}
+
 	public void connect(HueAccessPoint accessPoint, String userId, Integer timeout) throws HueDKException, HueDKConnectionException {
 		JerseyClient client = null;
 		try {
-			client = JerseyClientBuilder.createClient();
-
-			// default timeout value for all requests
-			client.property(ClientProperties.CONNECT_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
-			client.property(ClientProperties.READ_TIMEOUT, timeout != null ? timeout : DEFAULT_TIMEOUT);
+			client = getJerseyClient(timeout, timeout);
 
 			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s", accessPoint.getIp(), userId));
 
@@ -226,7 +231,7 @@ public class HueDK {
 
 			USERID = userId;
 			ACCESSPOINT = accessPoint;
-			
+
 			LOGGER.debug(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
 
 		} catch (HueDKConnectionException ex) {
@@ -238,6 +243,59 @@ public class HueDK {
 				client.close();
 			}
 		}
+	}
+
+	public List<HueLight> getLights() throws HueDKException, HueDKConnectionException {
+		return getLights(DEFAULT_TIMEOUT);
+	}
+
+	public List<HueLight> getLights(Integer timeout) throws HueDKException, HueDKConnectionException {
+		List<HueLight> lights = null;
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		JerseyClient client = null;
+		try {
+			client = getJerseyClient(timeout, timeout);
+
+			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
+
+			Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+					.header("content-type", MediaType.APPLICATION_JSON);
+
+			Response response = builder.get();
+
+			if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+				Map<String, Map> all = response.readEntity(Map.class);
+
+				if (all != null && all.size() > 0) {
+					lights = new ArrayList<HueLight>();
+					ObjectMapper mapper = new ObjectMapper();
+					for (String key : all.keySet()) {
+						LOGGER.debug(String.format("%s:\n%s", key, all.get(key)));
+						HueLight light = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), HueLight.class); 
+						light.setId(key);
+						lights.add(light);
+					}
+				}
+
+			} else {
+				String error = response.readEntity(String.class);
+				LOGGER.error(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+			}
+
+		} catch (Exception ex) {
+			throw new HueDKException(ex.getMessage(), ex);
+		} finally {
+			if (client != null && !client.isClosed()) {
+				client.close();
+			}
+		}
+
+		return lights;
 	}
 
 }
