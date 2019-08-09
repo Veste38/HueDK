@@ -1,17 +1,15 @@
 package be.sleroy.huedk.dto.light;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import be.sleroy.huedk.dto.HueElement;
 
 /**
  * The Class HueLight.
  * 
  * @author sleroy
  */
-public class HueLight {
-
-	@JsonIgnore
-	private String id;
+public class HueLight extends HueElement {
 
 	@JsonProperty(value = "state")
 	private HueLightState state;
@@ -51,14 +49,6 @@ public class HueLight {
 
 	@JsonProperty(value = "productid")
 	private String productId;
-
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
 
 	public HueLightState getState() {
 		return state;
@@ -168,31 +158,6 @@ public class HueLight {
 	public String toString() {
 		return "HueLight [id=" + id + ", state=" + state + ", softwareUpdate=" + softwareUpdate + ", type=" + type + ", name=" + name + ", modelId=" + modelId + ", manufacturerName=" + manufacturerName + ", productName=" + productName + ", capabilities=" + capabilities + ", configuration=" + configuration
 				+ ", uniqueId=" + uniqueId + ", softwareVersion=" + softwareVersion + ", softwareConfigId=" + softwareConfigId + ", productId=" + productId + "]";
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		HueLight other = (HueLight) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		return true;
 	}
 
 }

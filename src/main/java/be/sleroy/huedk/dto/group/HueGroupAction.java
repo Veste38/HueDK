@@ -1,4 +1,4 @@
-package be.sleroy.huedk.dto.light;
+package be.sleroy.huedk.dto.group;
 
 import java.util.List;
 
@@ -9,11 +9,11 @@ import be.sleroy.huedk.enums.HueColorMode;
 import be.sleroy.huedk.enums.HueEffect;
 
 /**
- * The Class HueLightState.
+ * The Class HueGroupAction.
  * 
  * @author sleroy
  */
-public class HueLightState {
+public class HueGroupAction {
 
 	@JsonProperty(value = "on")
 	private boolean on;
@@ -41,12 +41,6 @@ public class HueLightState {
 
 	@JsonProperty(value = "colormode")
 	private HueColorMode colorMode;
-
-	@JsonProperty(value = "mode")
-	private String mode;
-
-	@JsonProperty(value = "reachable")
-	private boolean reachable;
 
 	private Integer colorRed;
 	private Integer colorGreen;
@@ -128,22 +122,6 @@ public class HueLightState {
 		this.colorMode = colorMode;
 	}
 
-	public String getMode() {
-		return mode;
-	}
-
-	public void setMode(String mode) {
-		this.mode = mode;
-	}
-
-	public boolean isReachable() {
-		return reachable;
-	}
-
-	public void setReachable(boolean reachable) {
-		this.reachable = reachable;
-	}
-
 	public Integer getColorRed() {
 		return colorRed;
 	}
@@ -186,8 +164,8 @@ public class HueLightState {
 
 	@Override
 	public String toString() {
-		return "HueLightState [on=" + on + ", brightness=" + brightness + ", hue=" + hue + ", saturation=" + saturation + ", effect=" + effect + ", xy=" + xy + ", ct=" + ct + ", alert=" + alert + ", colorMode=" + colorMode + ", mode=" + mode + ", reachable=" + reachable + ", colorRed=" + colorRed + ", colorGreen="
-				+ colorGreen + ", colorBlue=" + colorBlue + ", colorHex=" + colorHex + ", colorTemperature=" + colorTemperature + "]";
+		return "HueGroupAction [on=" + on + ", brightness=" + brightness + ", hue=" + hue + ", saturation=" + saturation + ", effect=" + effect + ", xy=" + xy + ", ct=" + ct + ", alert=" + alert + ", colorMode=" + colorMode + ", colorRed=" + colorRed + ", colorGreen=" + colorGreen + ", colorBlue=" + colorBlue
+				+ ", colorHex=" + colorHex + ", colorTemperature=" + colorTemperature + "]";
 	}
 
 }

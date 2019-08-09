@@ -1,5 +1,6 @@
 package be.sleroy.huedk;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -20,11 +21,14 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import be.sleroy.huedk.dto.HueElement;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
+import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.internal.HueResponse;
 import be.sleroy.huedk.dto.light.HueLight;
 import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
+import be.sleroy.huedk.utilities.ColorUtilities;
 
 /**
  * The Class HueDK.
@@ -40,6 +44,12 @@ public class HueDK {
 	private static String DEFAULT_DEVICETYPE = "HueDK#Default";
 
 	private static String PATH_LIGHTS = "lights";
+	private static String PATH_GROUPS = "groups";
+	private static String PATH_CONFIG = "config";
+	private static String PATH_SCHEDULES = "schedules";
+	private static String PATH_SCENES = "scenes";
+	private static String PATH_SENSORS = "sensors";
+	private static String PATH_RULES = "rules";
 
 	private static HueDK instance = null;
 
@@ -246,11 +256,23 @@ public class HueDK {
 	}
 
 	public List<HueLight> getLights() throws HueDKException, HueDKConnectionException {
-		return getLights(DEFAULT_TIMEOUT);
+		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, DEFAULT_TIMEOUT);
 	}
 
 	public List<HueLight> getLights(Integer timeout) throws HueDKException, HueDKConnectionException {
-		List<HueLight> lights = null;
+		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, timeout);
+	}
+
+	public List<HueGroup> getGroups() throws HueDKException, HueDKConnectionException {
+		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, DEFAULT_TIMEOUT);
+	}
+
+	public List<HueGroup> getGroups(Integer timeout) throws HueDKException, HueDKConnectionException {
+		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, timeout);
+	}
+
+	private List<? extends HueElement> getList(Class<? extends HueElement> thisClass, String path, Integer timeout) throws HueDKException, HueDKConnectionException {
+		List<HueElement> list = null;
 
 		if (ACCESSPOINT == null || USERID == null) {
 			throw new HueDKConnectionException("Not connected to an access point or userId is null");
@@ -260,7 +282,7 @@ public class HueDK {
 		try {
 			client = getJerseyClient(timeout, timeout);
 
-			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
+			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, path));
 
 			Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
 					.header("content-type", MediaType.APPLICATION_JSON);
@@ -271,13 +293,45 @@ public class HueDK {
 				Map<String, Map> all = response.readEntity(Map.class);
 
 				if (all != null && all.size() > 0) {
-					lights = new ArrayList<HueLight>();
+					list = new ArrayList<HueElement>();
 					ObjectMapper mapper = new ObjectMapper();
 					for (String key : all.keySet()) {
 						LOGGER.debug(String.format("%s:\n%s", key, all.get(key)));
-						HueLight light = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), HueLight.class); 
-						light.setId(key);
-						lights.add(light);
+						HueElement element = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), thisClass);
+						element.setId(key);
+						switch (thisClass.getSimpleName()) {
+						case "HueLight":
+							HueLight light = (HueLight) element;
+							if (light.getState() != null) {
+								if (light.getState().getXy() != null && light.getState().getXy().size() == 2) {
+									Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { light.getState().getXy().get(0), light.getState().getXy().get(1) }, light.getModelId()));
+									light.getState().setColorRed(awtColor.getRed());
+									light.getState().setColorGreen(awtColor.getGreen());
+									light.getState().setColorBlue(awtColor.getBlue());
+									light.getState().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
+								}
+								if (light.getState().getCt() != null) {
+									light.getState().setColorTemperature(ColorUtilities.getColorTemperature(light.getState().getCt()));
+								}
+							}
+							break;
+						case "HueGroup":
+							HueGroup group = (HueGroup) element;
+							if (group.getAction() != null) {
+								if (group.getAction().getXy() != null && group.getAction().getXy().size() == 2) {
+									Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { group.getAction().getXy().get(0), group.getAction().getXy().get(1) }, "GROUP"));
+									group.getAction().setColorRed(awtColor.getRed());
+									group.getAction().setColorGreen(awtColor.getGreen());
+									group.getAction().setColorBlue(awtColor.getBlue());
+									group.getAction().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
+								}
+								if (group.getAction().getCt() != null) {
+									group.getAction().setColorTemperature(ColorUtilities.getColorTemperature(group.getAction().getCt()));
+								}
+							}
+							break;
+						}
+						list.add(element);
 					}
 				}
 
@@ -295,7 +349,6 @@ public class HueDK {
 			}
 		}
 
-		return lights;
+		return list;
 	}
-
 }

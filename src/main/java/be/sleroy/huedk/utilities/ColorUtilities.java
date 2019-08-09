@@ -161,6 +161,16 @@ public class ColorUtilities {
 				Integer.valueOf(colorStr.substring(5, 7), 16));
 	}
 
+	public static Integer getColorTemperature(Integer ct) {
+		Integer colorTemp = null;
+		
+		if (ct != null) {
+			colorTemp = 6500 - ((ct - 153) * (4500/347));
+		}
+		
+		return colorTemp;
+	}
+	
 	private static List<HuePoint> colorPointsForModel(String model) {
 		if (model == null)
 			model = " ";
@@ -271,4 +281,5 @@ public class ColorUtilities {
 		colorPointsDefault.add(new HuePoint(0.0F, 0.0F));
 	}
 
+	
 }
