@@ -161,7 +161,7 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		try {
 			client = getJerseyClient(timeout, timeout);
 
-			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s", accessPoint.getIp(), userId));
+			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", accessPoint.getIp(), userId, PATH_LIGHTS));
 
 			Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
 					.header("content-type", MediaType.APPLICATION_JSON);

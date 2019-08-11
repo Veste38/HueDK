@@ -1,6 +1,5 @@
 package be.sleroy.huedk;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -28,7 +27,6 @@ import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
 import be.sleroy.huedk.exception.HueDKInitializationException;
 import be.sleroy.huedk.exception.HueDKUnsupportedOperationException;
-import be.sleroy.huedk.utilities.ColorUtilities;
 
 /**
  * The Class HueDKAsync.
@@ -198,7 +196,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 				try {
 					client = getJerseyClient(timeout, timeout);
 
-					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s", accessPoint.getIp(), userId));
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", accessPoint.getIp(), userId, PATH_LIGHTS));
 
 					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
 							.header("content-type", MediaType.APPLICATION_JSON);
@@ -372,7 +370,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 
@@ -476,7 +474,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 
