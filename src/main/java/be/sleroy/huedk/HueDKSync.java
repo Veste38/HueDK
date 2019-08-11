@@ -73,7 +73,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 
 			if (response.getStatus() != Response.Status.OK.getStatusCode()) {
 				String error = response.readEntity(String.class);
-				LOGGER.error(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				}
 				throw new HueDKException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 			}
 
@@ -82,10 +84,10 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 
 			accessPoints = response.readEntity(generic);
 
-			if (LOGGER.isDebugEnabled()) {
+			if (LOGGER.isTraceEnabled()) {
 				if (accessPoints != null) {
 					for (HueAccessPoint accessPoint : accessPoints) {
-						LOGGER.debug(accessPoint.toString());
+						LOGGER.trace(accessPoint.toString());
 					}
 				}
 			}
@@ -141,12 +143,16 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 						if (responseList.get(0).getSuccess() != null) {
 							userId = responseList.get(0).getSuccess().getUsername();
 						} else if (responseList.get(0).getError() != null) {
-							LOGGER.debug(String.format("Error: %s | Description: %s", responseList.get(0).getError().getType(), responseList.get(0).getError().getDescription()));
+							if (LOGGER.isDebugEnabled()) {
+								LOGGER.debug(String.format("Error: %s | Description: %s", responseList.get(0).getError().getType(), responseList.get(0).getError().getDescription()));
+							}
 						}
 					}
 				} else {
 					String error = response.readEntity(String.class);
-					LOGGER.error(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					if (LOGGER.isTraceEnabled()) {
+						LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
 					throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 				}
 
@@ -196,7 +202,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 					List<HueResponse> responseList = response.readEntity(generic);
 					if (responseList != null && responseList.size() > 0) {
 						if (responseList.get(0).getError() != null) {
-							LOGGER.debug(String.format("Error: %s | Description: %s", responseList.get(0).getError().getType(), responseList.get(0).getError().getDescription()));
+							if (LOGGER.isTraceEnabled()) {
+								LOGGER.trace(String.format("Error: %s | Description: %s", responseList.get(0).getError().getType(), responseList.get(0).getError().getDescription()));
+							}
 							throw new HueDKConnectionException(String.format("Error: %s | Description: %s", responseList.get(0).getError().getType(), responseList.get(0).getError().getDescription()));
 						}
 					}
@@ -204,14 +212,18 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 				}
 			} else {
 				String error = response.readEntity(String.class);
-				LOGGER.error(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				}
 				throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 			}
 
 			USERID = userId;
 			ACCESSPOINT = accessPoint;
 
-			LOGGER.debug(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
+			if (LOGGER.isTraceEnabled()) {
+				LOGGER.trace(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
+			}
 
 		} catch (HueDKConnectionException ex) {
 			throw ex;
@@ -270,7 +282,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 					list = new ArrayList<HueIdElement>();
 					ObjectMapper mapper = new ObjectMapper();
 					for (String key : all.keySet()) {
-						LOGGER.debug(String.format("%s:\n%s", key, all.get(key)));
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("%s:\n%s", key, all.get(key)));
+						}
 						HueIdElement element = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), thisClass);
 						element.setId(key);
 						switch (thisClass.getSimpleName()) {
@@ -311,7 +325,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 
 			} else {
 				String error = response.readEntity(String.class);
-				LOGGER.error(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				}
 				throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 			}
 
