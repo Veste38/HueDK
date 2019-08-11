@@ -97,6 +97,13 @@ public class HueDKTest {
 						LOGGER.debug(groupLight.toString());
 					}
 				}
+				List<HueGroup> lightGroups = hueDK.getGroupsOfLight("1");
+				if (lightGroups != null && lightGroups.size() > 0) {
+					for (HueGroup lightGroup : lightGroups) {
+						LOGGER.debug(lightGroup.toString());
+					}
+				}
+				
 			}
 		} catch (HueDKConnectionException ex) {
 			LOGGER.error(ex.getMessage(), ex);
@@ -186,6 +193,14 @@ public class HueDKTest {
 					if (asyncFinished) {
 						throw new HueDKException("Error occured!");
 					}
+					asyncGroupsFound = false;
+					hueDK.getGroupsOfLight("1");
+					while (!asyncFinished && !asyncGroupsFound) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
 				}
 			}
 		} catch (InterruptedException ex) {
@@ -200,7 +215,7 @@ public class HueDKTest {
 	private HueDKEventListener listener = new HueDKEventListener() {
 
 		@Override
-		public void onSuccessfulConnection(String message) {
+		public void onConnectionSucceed(String message) {
 			LOGGER.info(message);
 			asyncConnected = true;
 		}

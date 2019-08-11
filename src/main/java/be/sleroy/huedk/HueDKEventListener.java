@@ -15,6 +15,6 @@ public abstract interface HueDKEventListener {
 	
 	abstract void onError(Class<? extends HueDKException> exceptionType, HueDKException exception);
 
-	abstract void onSuccessfulConnection(String message);
+	abstract void onConnectionSucceed(String message);
 
 }

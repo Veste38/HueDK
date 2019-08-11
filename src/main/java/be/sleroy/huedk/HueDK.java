@@ -54,6 +54,10 @@ public interface HueDK {
 
 	List<HueGroup> getGroups(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
+	List<HueGroup> getGroupsOfLight(String lightId) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
 	HueGroup getGroup(String id) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 	HueGroup getGroup(String id, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;

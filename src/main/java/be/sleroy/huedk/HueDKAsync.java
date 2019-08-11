@@ -235,7 +235,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 					if (LOGGER.isTraceEnabled()) {
 						LOGGER.trace(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
 					}
-					LISTENER.onSuccessfulConnection(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
+					LISTENER.onConnectionSucceed(String.format("%s successfully connected to %s", userId, accessPoint.getIp()));
 
 				} catch (HueDKConnectionException ex) {
 					LISTENER.onError(HueDKConnectionException.class, ex);
@@ -383,6 +383,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		new Thread(new Runnable() {
 			public void run() {
 				HueGroup group = null;
+				List<HueLight> allLights = null;
 
 				JerseyClient client = null;
 				try {
@@ -408,30 +409,13 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 					}
 
-				} catch (HueDKConnectionException ex) {
-					LISTENER.onError(HueDKConnectionException.class, ex);
-				} catch (Exception ex) {
-					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
-				} finally {
-					if (client != null && !client.isClosed()) {
-						client.close();
-					}
-				}
 
-				List<HueLight> allLights = null;
-				try {
-					if (ACCESSPOINT == null || USERID == null) {
-						throw new HueDKConnectionException("Not connected to an access point or userId is null");
-					}
+					webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
 
-					client = getJerseyClient(timeout, timeout);
-
-					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
-
-					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+					builder = webTarget.request(MediaType.APPLICATION_JSON)
 							.header("content-type", MediaType.APPLICATION_JSON);
 
-					Response response = builder.get();
+					response = builder.get();
 
 					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
 						Map<String, Map> all = response.readEntity(Map.class);
@@ -475,6 +459,108 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 					}
 
 					LISTENER.onListReceived(HueLight.class, groupLights);
+
+				} catch (HueDKConnectionException ex) {
+					LISTENER.onError(HueDKConnectionException.class, ex);
+				} catch (Exception ex) {
+					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
+				} finally {
+					if (client != null && !client.isClosed()) {
+						client.close();
+					}
+				}
+
+			}
+		}).start();
+
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		new Thread(new Runnable() {
+			public void run() {
+				HueLight light = null;
+				List<HueGroup> allGroups = null;
+
+				JerseyClient client = null;
+				try {
+					client = getJerseyClient(timeout, timeout);
+
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS, lightId));
+
+					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					Response response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						light = response.readEntity(HueLight.class);
+
+						light.setId(lightId);
+
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+					webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_GROUPS));
+
+					builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						Map<String, Map> all = response.readEntity(Map.class);
+
+						if (all != null && all.size() > 0) {
+							allGroups = new ArrayList<HueGroup>();
+							ObjectMapper mapper = new ObjectMapper();
+							for (String key : all.keySet()) {
+								if (LOGGER.isTraceEnabled()) {
+									LOGGER.trace(String.format("%s:\n%s", key, all.get(key)));
+								}
+								HueGroup group = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), HueGroup.class);
+								group.setId(key);
+								processColor(HueGroup.class, group);
+								allGroups.add(group);
+							}
+						}
+
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+					List<HueGroup> lightGroups = null;
+
+					if (light != null && allGroups != null && allGroups.size() > 0) {
+						lightGroups = new ArrayList<HueGroup>();
+						for (HueGroup group : allGroups) {
+							if (group.getLightIdList() != null && group.getLightIdList().contains(light.getId())) {
+								lightGroups.add(group);
+							}
+						}
+					}
+
+					if (lightGroups != null && lightGroups.size() == 0) {
+						lightGroups = null;
+					}
+
+					LISTENER.onListReceived(HueGroup.class, lightGroups);
 
 				} catch (HueDKConnectionException ex) {
 					LISTENER.onError(HueDKConnectionException.class, ex);

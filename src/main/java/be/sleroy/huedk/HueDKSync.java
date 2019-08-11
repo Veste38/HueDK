@@ -332,4 +332,26 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		return lights;
 	}
  
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+		List<HueGroup> groups = null;
+		HueLight hueLight = (HueLight)getElement(HueLight.class, lightId, PATH_LIGHTS, timeout);
+		if (hueLight != null) {
+			List<HueGroup> allGroups = (List<HueGroup>)getList(HueGroup.class, PATH_GROUPS, timeout);
+			if (allGroups != null && allGroups.size() > 0) {
+				groups = new ArrayList<HueGroup>();
+				for (HueGroup group : allGroups) {
+					if (group.getLightIdList().contains(hueLight.getId())) {
+						groups.add(group);
+					}
+				}
+			}
+		}
+		if (groups != null && groups.size() == 0) {
+			groups = null;
+		}
+		return groups;
+	}
+ 
 }

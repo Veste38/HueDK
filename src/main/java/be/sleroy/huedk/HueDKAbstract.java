@@ -141,6 +141,10 @@ public abstract class HueDKAbstract {
 		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, timeout);
 	}
 
+	public List<HueGroup> getGroupsOfLight(String lightId) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+		return getGroupsOfLight(lightId, DEFAULT_TIMEOUT);
+	}
+
 	public HueGroup getGroup(String id) throws HueDKException, HueDKConnectionException {
 		return (HueGroup) getElement(HueGroup.class, id, PATH_GROUPS, DEFAULT_TIMEOUT);
 	}
@@ -160,5 +164,7 @@ public abstract class HueDKAbstract {
 	protected abstract HueIdElement getElement(Class<? extends HueIdElement> thisClass, String id, String path, Integer timeout) throws HueDKException, HueDKConnectionException;
 
 	public abstract List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	public abstract List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 }
