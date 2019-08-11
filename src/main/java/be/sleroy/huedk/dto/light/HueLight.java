@@ -2,14 +2,14 @@ package be.sleroy.huedk.dto.light;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import be.sleroy.huedk.dto.HueElement;
+import be.sleroy.huedk.dto.HueIdElement;
 
 /**
  * The Class HueLight.
  * 
  * @author sleroy
  */
-public class HueLight extends HueElement {
+public class HueLight extends HueIdElement {
 
 	@JsonProperty(value = "state")
 	private HueLightState state;

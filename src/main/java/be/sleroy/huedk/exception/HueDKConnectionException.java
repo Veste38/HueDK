@@ -5,7 +5,7 @@ package be.sleroy.huedk.exception;
  * 
  * @author sleroy
  */
-public class HueDKConnectionException extends Exception {
+public class HueDKConnectionException extends HueDKException {
 
 	private static final long serialVersionUID = 8329592001094529265L;
 

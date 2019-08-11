@@ -5,14 +5,14 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import be.sleroy.huedk.dto.HueElement;
+import be.sleroy.huedk.dto.HueIdElement;
 
 /**
  * The Class HueGroup.
  * 
  * @author sleroy
  */
-public class HueGroup extends HueElement {
+public class HueGroup extends HueIdElement {
 
 	@JsonProperty(value = "name")
 	private String name;

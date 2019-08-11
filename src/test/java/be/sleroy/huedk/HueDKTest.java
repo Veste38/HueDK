@@ -7,21 +7,35 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.sleroy.huedk.dto.HueElement;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.light.HueLight;
 import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
+import be.sleroy.huedk.exception.HueDKInitializationException;
 
 public class HueDKTest {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(HueDKTest.class);
 
+	private boolean asyncFinished = false;
+	private boolean asyncBridgesFound = false;
+	private boolean asyncLightsFound = false;
+	private boolean asyncGroupsFound = false;
+	private boolean asyncSignedUp = false;
+	private boolean asyncConnected = false;
+
+	private List<HueAccessPoint> asyncAccessPoints = null;
+	private String asyncUser = null;
+	private List<HueLight> asyncLights = null;
+	private List<HueGroup> asyncGroups = null;
+
 	@Test
-	public void findBridgesTest() {
+	public void syncFindBridgesTest() {
 
 		try {
-			List<HueAccessPoint> accessPointsList = HueDK.getInstance().findBridges();
+			List<HueAccessPoint> accessPointsList = HueDKFactory.getHueDKInstance(HueDK.Mode.SYNC).findBridges();
 			if (accessPointsList != null && accessPointsList.size() > 0) {
 				for (HueAccessPoint accessPoint : accessPointsList) {
 					LOGGER.debug("accessPoint.getId(): " + accessPoint.getId());
@@ -33,7 +47,7 @@ public class HueDKTest {
 			Assert.fail(ex.getMessage());
 		}
 		try {
-			HueDK.getInstance().findBridges(1);
+			HueDKFactory.getHueDKInstance(HueDK.Mode.SYNC).findBridges(1);
 			Assert.fail("No Exception raised (timeout)!");
 		} catch (HueDKException ex) {
 			LOGGER.debug(ex.getMessage());
@@ -41,28 +55,29 @@ public class HueDKTest {
 	}
 
 	@Test
-	public void connectTest() {
+	public void syncTest() {
 
 		try {
-			List<HueAccessPoint> accessPointsList = HueDK.getInstance().findBridges();
+			HueDK hueDK = HueDKFactory.getHueDKInstance(HueDK.Mode.SYNC);
+			List<HueAccessPoint> accessPointsList = hueDK.findBridges();
 			if (accessPointsList != null && accessPointsList.size() > 0) {
 				LOGGER.debug("Trying to connect to bridge IP: " + accessPointsList.get(0).getIp());
-				String userId = HueDK.getInstance().signUp(accessPointsList.get(0), "junit#connectTest", 10000);
+				String userId = hueDK.signUp(accessPointsList.get(0), "junit#connectTest", 10000);
 				LOGGER.debug("UserId: " + userId);
 				try {
-					HueDK.getInstance().connect(accessPointsList.get(0), "blabla", 10000);
-				} catch(HueDKConnectionException exc) {
+					hueDK.connect(accessPointsList.get(0), "blabla", 10000);
+				} catch (HueDKConnectionException exc) {
 					LOGGER.debug(exc.getMessage());
 				}
-				HueDK.getInstance().connect(accessPointsList.get(0), userId, 10000);
-				
-				List<HueLight> lights = HueDK.getInstance().getLights();
+				hueDK.connect(accessPointsList.get(0), userId, 10000);
+
+				List<HueLight> lights = hueDK.getLights();
 				if (lights != null && lights.size() > 0) {
 					for (HueLight light : lights) {
 						LOGGER.debug(light.toString());
 					}
 				}
-				List<HueGroup> groups = HueDK.getInstance().getGroups();
+				List<HueGroup> groups = hueDK.getGroups();
 				if (groups != null && groups.size() > 0) {
 					for (HueGroup group : groups) {
 						LOGGER.debug(group.toString());
@@ -78,4 +93,131 @@ public class HueDKTest {
 		}
 	}
 
+	@Test
+	public void asyncFindBridgesTest() {
+
+		try {
+			asyncFinished = false;
+
+			HueDKFactory.getHueDKInstance(HueDK.Mode.ASYNC).findBridges();
+			Assert.fail("HueDKInitializationException not thrown");
+
+		} catch (HueDKInitializationException ex) {
+			LOGGER.info(ex.getMessage());
+		} catch (HueDKException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			Assert.fail(ex.getMessage());
+		}
+		try {
+			asyncFinished = false;
+
+			HueDK hueDK = HueDKFactory.getHueDKInstance(HueDK.Mode.ASYNC);
+			hueDK.registerEventListener(listener);
+			hueDK.findBridges();
+			while (!asyncFinished && !asyncBridgesFound) {
+				Thread.sleep(1000);
+			}
+			if (asyncFinished) {
+				throw new HueDKException("Error occured!");
+			}
+			if (asyncAccessPoints != null && asyncAccessPoints.size() > 0) {
+				hueDK.signUp(asyncAccessPoints.get(0));
+				while (!asyncFinished && !asyncSignedUp) {
+					Thread.sleep(1000);
+				}
+				if (asyncFinished) {
+					throw new HueDKException("Error occured!");
+				}
+				if (asyncUser != null) {
+					hueDK.getLights();
+					while (!asyncFinished && !asyncLightsFound) {
+						Thread.sleep(1000);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+					hueDK.getGroups();
+					while (!asyncFinished && !asyncGroupsFound) {
+						Thread.sleep(1000);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+				}
+			}
+		} catch (InterruptedException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			Assert.fail(ex.getMessage());
+		} catch (HueDKException ex) {
+			LOGGER.error(ex.getMessage(), ex);
+			Assert.fail(ex.getMessage());
+		}
+	}
+
+	private HueDKEventListener listener = new HueDKEventListener() {
+
+		@Override
+		public void onSuccessfulConnection(String message) {
+			LOGGER.info(message);
+			asyncConnected = true;
+		}
+
+		@Override
+		public void onSignUp(String userId) {
+			asyncUser = userId;
+			asyncSignedUp = true;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public void onListReceived(Class<? extends HueElement> classType, List<? extends HueElement> list) {
+
+			switch (classType.getSimpleName()) {
+			case "HueAccessPoint":
+				List<HueAccessPoint> accessPoints = (List<HueAccessPoint>) list;
+				if (accessPoints != null) {
+					for (HueAccessPoint accessPoint : accessPoints) {
+						LOGGER.info(accessPoint.toString());
+					}
+				}
+				asyncAccessPoints = accessPoints;
+				asyncBridgesFound = true;
+				break;
+			case "HueLight":
+				List<HueLight> lights = (List<HueLight>) list;
+				if (lights != null) {
+					for (HueLight light : lights) {
+						LOGGER.info(light.toString());
+					}
+				}
+				asyncLights = lights;
+				asyncLightsFound = true;
+				break;
+			case "HueGroup":
+				List<HueGroup> groups = (List<HueGroup>) list;
+				if (groups != null) {
+					for (HueGroup group : groups) {
+						LOGGER.info(group.toString());
+					}
+				}
+				asyncGroups = groups;
+				asyncGroupsFound = true;
+				break;
+			}
+
+		}
+
+		@Override
+		public void onError(Class<? extends HueDKException> exceptionType, HueDKException exception) {
+			LOGGER.error(exception.getMessage(), exception);
+			asyncFinished = true;
+		}
+
+		@Override
+		public void onElementReceived(Class<? extends HueElement> classType, HueElement element) {
+			// TODO Auto-generated method stub
+
+			asyncFinished = true;
+		}
+	};
 }
