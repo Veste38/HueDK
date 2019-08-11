@@ -52,18 +52,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		}
 	}
 
-	public List<HueAccessPoint> findBridges() throws HueDKException, HueDKInitializationException {
-		return findBridges(DEFAULT_DISCOVER_URL, DEFAULT_TIMEOUT);
-	}
-
-	public List<HueAccessPoint> findBridges(Integer timeout) throws HueDKException, HueDKInitializationException {
-		return findBridges(DEFAULT_DISCOVER_URL, timeout);
-	}
-
-	public List<HueAccessPoint> findBridges(String discoverURL) throws HueDKException, HueDKInitializationException {
-		return findBridges(discoverURL, DEFAULT_TIMEOUT);
-	}
-
+	@Override
 	public List<HueAccessPoint> findBridges(String discoverURL, Integer timeout) throws HueDKException, HueDKInitializationException {
 
 		if (LISTENER == null) {
@@ -120,18 +109,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		return null;
 	}
 
-	public String signUp(HueAccessPoint accessPoint) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return signUp(accessPoint, DEFAULT_DEVICETYPE, DEFAULT_TIMEOUT);
-	}
-
-	public String signUp(HueAccessPoint accessPoint, String deviceType) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return signUp(accessPoint, deviceType, DEFAULT_TIMEOUT);
-	}
-
-	public String signUp(HueAccessPoint accessPoint, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return signUp(accessPoint, DEFAULT_DEVICETYPE, timeout);
-	}
-
+	@Override
 	public String signUp(HueAccessPoint accessPoint, String deviceType, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 
 		if (LISTENER == null) {
@@ -207,10 +185,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		return null;
 	}
 
-	public void connect(HueAccessPoint accessPoint, String userId) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		connect(accessPoint, userId, DEFAULT_TIMEOUT);
-	}
-
+	@Override
 	public void connect(HueAccessPoint accessPoint, String userId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 
 		if (LISTENER == null) {
@@ -275,28 +250,9 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 		}).start();
 	}
 
-	@SuppressWarnings("unchecked")
-	public List<HueLight> getLights() throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, DEFAULT_TIMEOUT);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueLight> getLights(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, timeout);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueGroup> getGroups() throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, DEFAULT_TIMEOUT);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueGroup> getGroups(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
-		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, timeout);
-	}
-
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private List<? extends HueIdElement> getList(Class<? extends HueIdElement> thisClass, String path, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+	@Override
+	protected List<? extends HueIdElement> getList(Class<? extends HueIdElement> thisClass, String path, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 
 		if (LISTENER == null) {
 			throw new HueDKInitializationException("Registered listener cannot be NULL");
@@ -333,38 +289,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 								}
 								HueIdElement element = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), thisClass);
 								element.setId(key);
-								switch (thisClass.getSimpleName()) {
-								case "HueLight":
-									HueLight light = (HueLight) element;
-									if (light.getState() != null) {
-										if (light.getState().getXy() != null && light.getState().getXy().size() == 2) {
-											Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { light.getState().getXy().get(0), light.getState().getXy().get(1) }, light.getModelId()));
-											light.getState().setColorRed(awtColor.getRed());
-											light.getState().setColorGreen(awtColor.getGreen());
-											light.getState().setColorBlue(awtColor.getBlue());
-											light.getState().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
-										}
-										if (light.getState().getCt() != null) {
-											light.getState().setColorTemperature(ColorUtilities.getColorTemperature(light.getState().getCt()));
-										}
-									}
-									break;
-								case "HueGroup":
-									HueGroup group = (HueGroup) element;
-									if (group.getAction() != null) {
-										if (group.getAction().getXy() != null && group.getAction().getXy().size() == 2) {
-											Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { group.getAction().getXy().get(0), group.getAction().getXy().get(1) }, "GROUP"));
-											group.getAction().setColorRed(awtColor.getRed());
-											group.getAction().setColorGreen(awtColor.getGreen());
-											group.getAction().setColorBlue(awtColor.getBlue());
-											group.getAction().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
-										}
-										if (group.getAction().getCt() != null) {
-											group.getAction().setColorTemperature(ColorUtilities.getColorTemperature(group.getAction().getCt()));
-										}
-									}
-									break;
-								}
+								processColor(thisClass, element);
 								list.add(element);
 							}
 						}
@@ -376,7 +301,7 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 						}
 						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 					}
-					
+
 					LISTENER.onListReceived(thisClass, list);
 
 				} catch (HueDKConnectionException ex) {
@@ -393,4 +318,178 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 
 		return null;
 	}
+
+	@Override
+	protected HueIdElement getElement(Class<? extends HueIdElement> thisClass, String id, String path, Integer timeout) throws HueDKException, HueDKConnectionException {
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		new Thread(new Runnable() {
+			public void run() {
+				HueIdElement element = null;
+
+				JerseyClient client = null;
+				try {
+					client = getJerseyClient(timeout, timeout);
+
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s/%s", ACCESSPOINT.getIp(), USERID, path, id));
+
+					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					Response response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						element = response.readEntity(thisClass);
+
+						element.setId(id);
+						processColor(thisClass, element);
+
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+					LISTENER.onElementReceived(thisClass, element);
+
+				} catch (HueDKConnectionException ex) {
+					LISTENER.onError(HueDKConnectionException.class, ex);
+				} catch (Exception ex) {
+					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
+				} finally {
+					if (client != null && !client.isClosed()) {
+						client.close();
+					}
+				}
+			}
+		}).start();
+
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		new Thread(new Runnable() {
+			public void run() {
+				HueGroup group = null;
+
+				JerseyClient client = null;
+				try {
+					client = getJerseyClient(timeout, timeout);
+
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_GROUPS, groupId));
+
+					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					Response response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						group = response.readEntity(HueGroup.class);
+
+						group.setId(groupId);
+
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+				} catch (HueDKConnectionException ex) {
+					LISTENER.onError(HueDKConnectionException.class, ex);
+				} catch (Exception ex) {
+					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
+				} finally {
+					if (client != null && !client.isClosed()) {
+						client.close();
+					}
+				}
+
+				List<HueLight> allLights = null;
+				try {
+					if (ACCESSPOINT == null || USERID == null) {
+						throw new HueDKConnectionException("Not connected to an access point or userId is null");
+					}
+
+					client = getJerseyClient(timeout, timeout);
+
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
+
+					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					Response response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						Map<String, Map> all = response.readEntity(Map.class);
+
+						if (all != null && all.size() > 0) {
+							allLights = new ArrayList<HueLight>();
+							ObjectMapper mapper = new ObjectMapper();
+							for (String key : all.keySet()) {
+								if (LOGGER.isTraceEnabled()) {
+									LOGGER.trace(String.format("%s:\n%s", key, all.get(key)));
+								}
+								HueLight light = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), HueLight.class);
+								light.setId(key);
+								processColor(HueLight.class, light);
+								allLights.add(light);
+							}
+						}
+
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+					List<HueLight> groupLights = null;
+
+					if (group != null && group.getLightIdList() != null && group.getLightIdList().size() > 0
+							&& allLights != null && allLights.size() > 0) {
+						groupLights = new ArrayList<HueLight>();
+						for (HueLight light : allLights) {
+							if (group.getLightIdList().contains(light.getId())) {
+								groupLights.add(light);
+							}
+						}
+					}
+
+					if (groupLights != null && groupLights.size() == 0) {
+						groupLights = null;
+					}
+
+					LISTENER.onListReceived(HueLight.class, groupLights);
+
+				} catch (HueDKConnectionException ex) {
+					LISTENER.onError(HueDKConnectionException.class, ex);
+				} catch (Exception ex) {
+					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
+				} finally {
+					if (client != null && !client.isClosed()) {
+						client.close();
+					}
+				}
+
+			}
+		}).start();
+
+		return null;
+	}
+
 }

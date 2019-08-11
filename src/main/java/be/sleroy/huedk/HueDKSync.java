@@ -1,6 +1,5 @@
 package be.sleroy.huedk;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -26,8 +25,8 @@ import be.sleroy.huedk.dto.internal.HueResponse;
 import be.sleroy.huedk.dto.light.HueLight;
 import be.sleroy.huedk.exception.HueDKConnectionException;
 import be.sleroy.huedk.exception.HueDKException;
+import be.sleroy.huedk.exception.HueDKInitializationException;
 import be.sleroy.huedk.exception.HueDKUnsupportedOperationException;
-import be.sleroy.huedk.utilities.ColorUtilities;
 
 /**
  * The Class HueDKSync.
@@ -45,18 +44,7 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		throw new HueDKUnsupportedOperationException("Registering event listener is not supported in Sync mode");
 	}
 
-	public List<HueAccessPoint> findBridges() throws HueDKException {
-		return findBridges(DEFAULT_DISCOVER_URL, DEFAULT_TIMEOUT);
-	}
-
-	public List<HueAccessPoint> findBridges(Integer timeout) throws HueDKException {
-		return findBridges(DEFAULT_DISCOVER_URL, timeout);
-	}
-
-	public List<HueAccessPoint> findBridges(String discoverURL) throws HueDKException {
-		return findBridges(discoverURL, DEFAULT_TIMEOUT);
-	}
-
+	@Override
 	public List<HueAccessPoint> findBridges(String discoverURL, Integer timeout) throws HueDKException {
 		List<HueAccessPoint> accessPoints = null;
 
@@ -102,18 +90,7 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		return accessPoints;
 	}
 
-	public String signUp(HueAccessPoint accessPoint) throws HueDKException, HueDKConnectionException {
-		return signUp(accessPoint, DEFAULT_DEVICETYPE, DEFAULT_TIMEOUT);
-	}
-
-	public String signUp(HueAccessPoint accessPoint, String deviceType) throws HueDKException, HueDKConnectionException {
-		return signUp(accessPoint, deviceType, DEFAULT_TIMEOUT);
-	}
-
-	public String signUp(HueAccessPoint accessPoint, Integer timeout) throws HueDKException, HueDKConnectionException {
-		return signUp(accessPoint, DEFAULT_DEVICETYPE, timeout);
-	}
-
+	@Override
 	public String signUp(HueAccessPoint accessPoint, String deviceType, Integer timeout) throws HueDKException, HueDKConnectionException {
 		String userId = null;
 
@@ -178,10 +155,7 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		return userId;
 	}
 
-	public void connect(HueAccessPoint accessPoint, String userId) throws HueDKException, HueDKConnectionException {
-		connect(accessPoint, userId, DEFAULT_TIMEOUT);
-	}
-
+	@Override
 	public void connect(HueAccessPoint accessPoint, String userId, Integer timeout) throws HueDKException, HueDKConnectionException {
 		JerseyClient client = null;
 		try {
@@ -236,28 +210,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public List<HueLight> getLights() throws HueDKException, HueDKConnectionException {
-		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, DEFAULT_TIMEOUT);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueLight> getLights(Integer timeout) throws HueDKException, HueDKConnectionException {
-		return (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, timeout);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueGroup> getGroups() throws HueDKException, HueDKConnectionException {
-		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, DEFAULT_TIMEOUT);
-	}
-
-	@SuppressWarnings("unchecked")
-	public List<HueGroup> getGroups(Integer timeout) throws HueDKException, HueDKConnectionException {
-		return (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, timeout);
-	}
-
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private List<? extends HueIdElement> getList(Class<? extends HueIdElement> thisClass, String path, Integer timeout) throws HueDKException, HueDKConnectionException {
+	@Override
+	protected List<? extends HueIdElement> getList(Class<? extends HueIdElement> thisClass, String path, Integer timeout) throws HueDKException, HueDKConnectionException {
 		List<HueIdElement> list = null;
 
 		if (ACCESSPOINT == null || USERID == null) {
@@ -287,38 +242,7 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 						}
 						HueIdElement element = mapper.readValue(new ObjectMapper().writeValueAsString(all.get(key)), thisClass);
 						element.setId(key);
-						switch (thisClass.getSimpleName()) {
-						case "HueLight":
-							HueLight light = (HueLight) element;
-							if (light.getState() != null) {
-								if (light.getState().getXy() != null && light.getState().getXy().size() == 2) {
-									Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { light.getState().getXy().get(0), light.getState().getXy().get(1) }, light.getModelId()));
-									light.getState().setColorRed(awtColor.getRed());
-									light.getState().setColorGreen(awtColor.getGreen());
-									light.getState().setColorBlue(awtColor.getBlue());
-									light.getState().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
-								}
-								if (light.getState().getCt() != null) {
-									light.getState().setColorTemperature(ColorUtilities.getColorTemperature(light.getState().getCt()));
-								}
-							}
-							break;
-						case "HueGroup":
-							HueGroup group = (HueGroup) element;
-							if (group.getAction() != null) {
-								if (group.getAction().getXy() != null && group.getAction().getXy().size() == 2) {
-									Color awtColor = new Color(ColorUtilities.colorFromXY(new float[] { group.getAction().getXy().get(0), group.getAction().getXy().get(1) }, "GROUP"));
-									group.getAction().setColorRed(awtColor.getRed());
-									group.getAction().setColorGreen(awtColor.getGreen());
-									group.getAction().setColorBlue(awtColor.getBlue());
-									group.getAction().setColorHex(String.format("#%02x%02x%02x", awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue()));
-								}
-								if (group.getAction().getCt() != null) {
-									group.getAction().setColorTemperature(ColorUtilities.getColorTemperature(group.getAction().getCt()));
-								}
-							}
-							break;
-						}
+						processColor(thisClass, element);
 						list.add(element);
 					}
 				}
@@ -341,4 +265,71 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 
 		return list;
 	}
+
+	@Override
+	protected HueIdElement getElement(Class<? extends HueIdElement> thisClass, String id, String path, Integer timeout) throws HueDKException, HueDKConnectionException {
+		HueIdElement element = null;
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		JerseyClient client = null;
+		try {
+			client = getJerseyClient(timeout, timeout);
+
+			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s/%s", ACCESSPOINT.getIp(), USERID, path, id));
+
+			Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+					.header("content-type", MediaType.APPLICATION_JSON);
+
+			Response response = builder.get();
+
+			if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+				element = response.readEntity(thisClass);
+
+				element.setId(id);
+				processColor(thisClass, element);
+
+			} else {
+				String error = response.readEntity(String.class);
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				}
+				throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+			}
+
+		} catch (Exception ex) {
+			throw new HueDKException(ex.getMessage(), ex);
+		} finally {
+			if (client != null && !client.isClosed()) {
+				client.close();
+			}
+		}
+
+		return element;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+		List<HueLight> lights = null;
+		HueGroup hueGroup = (HueGroup)getElement(HueGroup.class, groupId, PATH_GROUPS, timeout);
+		if (hueGroup != null && hueGroup.getLightIdList() != null && hueGroup.getLightIdList().size() > 0) {
+			List<HueLight> allLights = (List<HueLight>)getList(HueLight.class, PATH_LIGHTS, timeout);
+			if (allLights != null && allLights.size() > 0) {
+				lights = new ArrayList<HueLight>();
+				for (HueLight light : allLights) {
+					if (hueGroup.getLightIdList().contains(light.getId())) {
+						lights.add(light);
+					}
+				}
+			}
+		}
+		if (lights != null && lights.size() == 0) {
+			lights = null;
+		}
+		return lights;
+	}
+ 
 }

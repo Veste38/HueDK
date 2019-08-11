@@ -42,8 +42,20 @@ public interface HueDK {
 
 	List<HueLight> getLights(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
+	HueLight getLight(String id) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	HueLight getLight(String id, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	List<HueLight> getLightsOfGroup(String groupId) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
 	List<HueGroup> getGroups() throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 	List<HueGroup> getGroups(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	HueGroup getGroup(String id) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	HueGroup getGroup(String id, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 }

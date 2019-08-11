@@ -19,12 +19,16 @@ public class HueDKTest {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(HueDKTest.class);
 
+	private static int DEFAULT_WAIT_ASYNC = 500;
+	
 	private boolean asyncFinished = false;
 	private boolean asyncBridgesFound = false;
-	private boolean asyncLightsFound = false;
-	private boolean asyncGroupsFound = false;
 	private boolean asyncSignedUp = false;
 	private boolean asyncConnected = false;
+	private boolean asyncLightsFound = false;
+	private boolean asyncGroupsFound = false;
+	private boolean asyncLightFound = false;
+	private boolean asyncGroupFound = false;
 
 	private List<HueAccessPoint> asyncAccessPoints = null;
 	private String asyncUser = null;
@@ -83,6 +87,16 @@ public class HueDKTest {
 						LOGGER.debug(group.toString());
 					}
 				}
+				HueLight light = hueDK.getLight("1");
+				LOGGER.debug(light.toString());
+				HueGroup group = hueDK.getGroup("1");
+				LOGGER.debug(group.toString());
+				List<HueLight> groupLights = hueDK.getLightsOfGroup("1");
+				if (groupLights != null && groupLights.size() > 0) {
+					for (HueLight groupLight : groupLights) {
+						LOGGER.debug(groupLight.toString());
+					}
+				}
 			}
 		} catch (HueDKConnectionException ex) {
 			LOGGER.error(ex.getMessage(), ex);
@@ -115,7 +129,7 @@ public class HueDKTest {
 			hueDK.registerEventListener(listener);
 			hueDK.findBridges();
 			while (!asyncFinished && !asyncBridgesFound) {
-				Thread.sleep(1000);
+				Thread.sleep(DEFAULT_WAIT_ASYNC);
 			}
 			if (asyncFinished) {
 				throw new HueDKException("Error occured!");
@@ -123,22 +137,51 @@ public class HueDKTest {
 			if (asyncAccessPoints != null && asyncAccessPoints.size() > 0) {
 				hueDK.signUp(asyncAccessPoints.get(0));
 				while (!asyncFinished && !asyncSignedUp) {
-					Thread.sleep(1000);
+					Thread.sleep(DEFAULT_WAIT_ASYNC);
 				}
 				if (asyncFinished) {
 					throw new HueDKException("Error occured!");
 				}
 				if (asyncUser != null) {
+					hueDK.connect(asyncAccessPoints.get(0), asyncUser);
+					while (!asyncFinished && !asyncConnected) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
 					hueDK.getLights();
 					while (!asyncFinished && !asyncLightsFound) {
-						Thread.sleep(1000);
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
 					}
 					if (asyncFinished) {
 						throw new HueDKException("Error occured!");
 					}
 					hueDK.getGroups();
 					while (!asyncFinished && !asyncGroupsFound) {
-						Thread.sleep(1000);
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+					hueDK.getLight("1");
+					while (!asyncFinished && !asyncLightFound) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+					hueDK.getGroup("1");
+					while (!asyncFinished && !asyncGroupFound) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+					asyncLightsFound = false;
+					hueDK.getLightsOfGroup("1");
+					while (!asyncFinished && !asyncLightsFound) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
 					}
 					if (asyncFinished) {
 						throw new HueDKException("Error occured!");
@@ -216,8 +259,17 @@ public class HueDKTest {
 		@Override
 		public void onElementReceived(Class<? extends HueElement> classType, HueElement element) {
 			// TODO Auto-generated method stub
+			switch (classType.getSimpleName()) {
+			case "HueLight":
+				LOGGER.info(((HueLight)element).toString());
+				asyncLightFound = true;
+				break;
+			case "HueGroup":
+				LOGGER.info(((HueGroup)element).toString());
+				asyncGroupFound = true;
+				break;
+			}
 
-			asyncFinished = true;
 		}
 	};
 }

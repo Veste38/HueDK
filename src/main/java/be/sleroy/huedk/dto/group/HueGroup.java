@@ -126,7 +126,7 @@ public class HueGroup extends HueIdElement {
 
 	@Override
 	public String toString() {
-		return "HueGroup [name=" + name + ", lightIdList=" + lightIdList + ", sensorIdList=" + sensorIdList + ", type=" + type + ", state=" + state + ", recycle=" + recycle + ", clas=" + clas + ", stream=" + stream + ", locations=" + locations + ", action=" + action + "]";
+		return "HueGroup [id=" + id + ", name=" + name + ", lightIdList=" + lightIdList + ", sensorIdList=" + sensorIdList + ", type=" + type + ", state=" + state + ", recycle=" + recycle + ", clas=" + clas + ", stream=" + stream + ", locations=" + locations + ", action=" + action + "]";
 	}
 
 }
