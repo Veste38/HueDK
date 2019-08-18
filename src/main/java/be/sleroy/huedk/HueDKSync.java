@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import be.sleroy.huedk.dto.HueIdElement;
+import be.sleroy.huedk.dto.config.HueConfig;
+import be.sleroy.huedk.dto.config.HueWhiteUser;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.internal.HueResponse;
@@ -314,9 +316,9 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 	@Override
 	public List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 		List<HueLight> lights = null;
-		HueGroup hueGroup = (HueGroup)getElement(HueGroup.class, groupId, PATH_GROUPS, timeout);
+		HueGroup hueGroup = (HueGroup) getElement(HueGroup.class, groupId, PATH_GROUPS, timeout);
 		if (hueGroup != null && hueGroup.getLightIdList() != null && hueGroup.getLightIdList().size() > 0) {
-			List<HueLight> allLights = (List<HueLight>)getList(HueLight.class, PATH_LIGHTS, timeout);
+			List<HueLight> allLights = (List<HueLight>) getList(HueLight.class, PATH_LIGHTS, timeout);
 			if (allLights != null && allLights.size() > 0) {
 				lights = new ArrayList<HueLight>();
 				for (HueLight light : allLights) {
@@ -331,14 +333,14 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		}
 		return lights;
 	}
- 
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
 		List<HueGroup> groups = null;
-		HueLight hueLight = (HueLight)getElement(HueLight.class, lightId, PATH_LIGHTS, timeout);
+		HueLight hueLight = (HueLight) getElement(HueLight.class, lightId, PATH_LIGHTS, timeout);
 		if (hueLight != null) {
-			List<HueGroup> allGroups = (List<HueGroup>)getList(HueGroup.class, PATH_GROUPS, timeout);
+			List<HueGroup> allGroups = (List<HueGroup>) getList(HueGroup.class, PATH_GROUPS, timeout);
 			if (allGroups != null && allGroups.size() > 0) {
 				groups = new ArrayList<HueGroup>();
 				for (HueGroup group : allGroups) {
@@ -353,5 +355,58 @@ public class HueDKSync extends HueDKAbstract implements HueDK {
 		}
 		return groups;
 	}
- 
+
+	@Override
+	public HueConfig getConfig(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+		HueConfig hueConfig = null;
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		JerseyClient client = null;
+		try {
+			client = getJerseyClient(timeout, timeout);
+
+			JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_CONFIG));
+
+			Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+					.header("content-type", MediaType.APPLICATION_JSON);
+
+			Response response = builder.get();
+
+			if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+				hueConfig = response.readEntity(HueConfig.class);
+				if (hueConfig != null && hueConfig.getInternalWhiteList() != null && hueConfig.getInternalWhiteList().size() > 0) {
+					List<HueWhiteUser> whiteUsers = new ArrayList<HueWhiteUser>();
+					ObjectMapper mapper = new ObjectMapper();
+					for (String key : hueConfig.getInternalWhiteList().keySet()) {
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("%s:\n%s", key, hueConfig.getInternalWhiteList().get(key)));
+						}
+						HueWhiteUser whiteUser = mapper.readValue(new ObjectMapper().writeValueAsString(hueConfig.getInternalWhiteList().get(key)), HueWhiteUser.class);
+						whiteUser.setId(key);
+						whiteUsers.add(whiteUser);
+					}
+					hueConfig.setWhitelist(whiteUsers);
+					hueConfig.setInternalWhiteList(null);
+				}
+			} else {
+				String error = response.readEntity(String.class);
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+				}
+				throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+			}
+
+		} catch (Exception ex) {
+			throw new HueDKException(ex.getMessage(), ex);
+		} finally {
+			if (client != null && !client.isClosed()) {
+				client.close();
+			}
+		}
+
+		return hueConfig;
+	}
 }

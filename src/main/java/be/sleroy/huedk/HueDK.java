@@ -2,6 +2,7 @@ package be.sleroy.huedk;
 
 import java.util.List;
 
+import be.sleroy.huedk.dto.config.HueConfig;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.light.HueLight;
@@ -62,4 +63,7 @@ public interface HueDK {
 
 	HueGroup getGroup(String id, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
+	HueConfig getConfig() throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	HueConfig getConfig(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 }

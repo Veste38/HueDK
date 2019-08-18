@@ -8,6 +8,7 @@ import org.glassfish.jersey.client.JerseyClient;
 import org.glassfish.jersey.client.JerseyClientBuilder;
 
 import be.sleroy.huedk.dto.HueIdElement;
+import be.sleroy.huedk.dto.config.HueConfig;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.light.HueLight;
@@ -153,6 +154,10 @@ public abstract class HueDKAbstract {
 		return (HueGroup) getElement(HueGroup.class, id, PATH_GROUPS, timeout);
 	}
 
+	public HueConfig getConfig() throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+		return getConfig(DEFAULT_TIMEOUT);
+	}
+
 	public abstract List<HueAccessPoint> findBridges(String discoverURL, Integer timeout) throws HueDKException;
 
 	public abstract String signUp(HueAccessPoint accessPoint, String deviceType, Integer timeout) throws HueDKException, HueDKConnectionException;
@@ -166,5 +171,7 @@ public abstract class HueDKAbstract {
 	public abstract List<HueLight> getLightsOfGroup(String groupId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 	public abstract List<HueGroup> getGroupsOfLight(String lightId, Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
+
+	public abstract HueConfig getConfig(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException;
 
 }

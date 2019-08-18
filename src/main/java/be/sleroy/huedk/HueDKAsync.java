@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import be.sleroy.huedk.dto.HueIdElement;
+import be.sleroy.huedk.dto.config.HueConfig;
+import be.sleroy.huedk.dto.config.HueWhiteUser;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.internal.HueResponse;
@@ -407,7 +409,6 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
 					}
 
-
 					webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_LIGHTS));
 
 					builder = webTarget.request(MediaType.APPLICATION_JSON)
@@ -570,6 +571,68 @@ public class HueDKAsync extends HueDKAbstract implements HueDK {
 					}
 				}
 
+			}
+		}).start();
+
+		return null;
+	}
+
+	@Override
+	public HueConfig getConfig(Integer timeout) throws HueDKException, HueDKInitializationException, HueDKConnectionException {
+
+		if (ACCESSPOINT == null || USERID == null) {
+			throw new HueDKConnectionException("Not connected to an access point or userId is null");
+		}
+
+		new Thread(new Runnable() {
+			public void run() {
+				HueConfig hueConfig = null;
+				JerseyClient client = null;
+				try {
+					client = getJerseyClient(timeout, timeout);
+
+					JerseyWebTarget webTarget = client.target(String.format("http://%s/api/%s/%s", ACCESSPOINT.getIp(), USERID, PATH_CONFIG));
+
+					Invocation.Builder builder = webTarget.request(MediaType.APPLICATION_JSON)
+							.header("content-type", MediaType.APPLICATION_JSON);
+
+					Response response = builder.get();
+
+					if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+						hueConfig = response.readEntity(HueConfig.class);
+						if (hueConfig != null && hueConfig.getInternalWhiteList() != null && hueConfig.getInternalWhiteList().size() > 0) {
+							List<HueWhiteUser> whiteUsers = new ArrayList<HueWhiteUser>();
+							ObjectMapper mapper = new ObjectMapper();
+							for (String key : hueConfig.getInternalWhiteList().keySet()) {
+								if (LOGGER.isTraceEnabled()) {
+									LOGGER.trace(String.format("%s:\n%s", key, hueConfig.getInternalWhiteList().get(key)));
+								}
+								HueWhiteUser whiteUser = mapper.readValue(new ObjectMapper().writeValueAsString(hueConfig.getInternalWhiteList().get(key)), HueWhiteUser.class);
+								whiteUser.setId(key);
+								whiteUsers.add(whiteUser);
+							}
+							hueConfig.setWhitelist(whiteUsers);
+							hueConfig.setInternalWhiteList(null);
+						}
+					} else {
+						String error = response.readEntity(String.class);
+						if (LOGGER.isTraceEnabled()) {
+							LOGGER.trace(String.format("Status: %d | Error: %s", response.getStatus(), error));
+						}
+						throw new HueDKConnectionException(String.format("Status: %d | Error: %s", response.getStatus(), error));
+					}
+
+					LISTENER.onElementReceived(HueConfig.class, hueConfig);
+
+				} catch (HueDKConnectionException ex) {
+					LISTENER.onError(HueDKConnectionException.class, ex);
+				} catch (Exception ex) {
+					LISTENER.onError(HueDKException.class, new HueDKException(ex.getMessage(), ex));
+				} finally {
+					if (client != null && !client.isClosed()) {
+						client.close();
+					}
+				}
 			}
 		}).start();
 

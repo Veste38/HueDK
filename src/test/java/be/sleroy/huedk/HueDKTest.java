@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.sleroy.huedk.dto.HueElement;
+import be.sleroy.huedk.dto.config.HueConfig;
 import be.sleroy.huedk.dto.connection.HueAccessPoint;
 import be.sleroy.huedk.dto.group.HueGroup;
 import be.sleroy.huedk.dto.light.HueLight;
@@ -20,11 +21,12 @@ public class HueDKTest {
 	private static Logger LOGGER = LoggerFactory.getLogger(HueDKTest.class);
 
 	private static int DEFAULT_WAIT_ASYNC = 500;
-	
+
 	private boolean asyncFinished = false;
 	private boolean asyncBridgesFound = false;
 	private boolean asyncSignedUp = false;
 	private boolean asyncConnected = false;
+	private boolean asyncConfigFound = false;
 	private boolean asyncLightsFound = false;
 	private boolean asyncGroupsFound = false;
 	private boolean asyncLightFound = false;
@@ -34,6 +36,8 @@ public class HueDKTest {
 	private String asyncUser = null;
 	private List<HueLight> asyncLights = null;
 	private List<HueGroup> asyncGroups = null;
+
+	private String defaultUserId = "s7Yhs0nz1NinDhZESm2AZ3nB0aXz3cytNezD50zj";
 
 	@Test
 	public void syncFindBridgesTest() {
@@ -66,7 +70,12 @@ public class HueDKTest {
 			List<HueAccessPoint> accessPointsList = hueDK.findBridges();
 			if (accessPointsList != null && accessPointsList.size() > 0) {
 				LOGGER.debug("Trying to connect to bridge IP: " + accessPointsList.get(0).getIp());
-				String userId = hueDK.signUp(accessPointsList.get(0), "junit#connectTest", 10000);
+				String userId = null;
+				if (defaultUserId == null) {
+					userId = hueDK.signUp(accessPointsList.get(0), "junit#connectTest", 10000);
+				} else {
+					userId = defaultUserId;
+				}
 				LOGGER.debug("UserId: " + userId);
 				try {
 					hueDK.connect(accessPointsList.get(0), "blabla", 10000);
@@ -75,6 +84,11 @@ public class HueDKTest {
 				}
 				hueDK.connect(accessPointsList.get(0), userId, 10000);
 
+				HueConfig hueConfig = hueDK.getConfig();
+				if (hueConfig != null) {
+					LOGGER.debug(hueConfig.toString());
+				}
+				
 				List<HueLight> lights = hueDK.getLights();
 				if (lights != null && lights.size() > 0) {
 					for (HueLight light : lights) {
@@ -103,7 +117,7 @@ public class HueDKTest {
 						LOGGER.debug(lightGroup.toString());
 					}
 				}
-				
+
 			}
 		} catch (HueDKConnectionException ex) {
 			LOGGER.error(ex.getMessage(), ex);
@@ -142,16 +156,27 @@ public class HueDKTest {
 				throw new HueDKException("Error occured!");
 			}
 			if (asyncAccessPoints != null && asyncAccessPoints.size() > 0) {
-				hueDK.signUp(asyncAccessPoints.get(0));
-				while (!asyncFinished && !asyncSignedUp) {
-					Thread.sleep(DEFAULT_WAIT_ASYNC);
-				}
-				if (asyncFinished) {
-					throw new HueDKException("Error occured!");
+				if (defaultUserId == null) {
+					hueDK.signUp(asyncAccessPoints.get(0));
+					while (!asyncFinished && !asyncSignedUp) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+				} else {
+					asyncUser = defaultUserId;
 				}
 				if (asyncUser != null) {
 					hueDK.connect(asyncAccessPoints.get(0), asyncUser);
 					while (!asyncFinished && !asyncConnected) {
+						Thread.sleep(DEFAULT_WAIT_ASYNC);
+					}
+					if (asyncFinished) {
+						throw new HueDKException("Error occured!");
+					}
+					hueDK.getConfig();
+					while (!asyncFinished && !asyncConfigFound) {
 						Thread.sleep(DEFAULT_WAIT_ASYNC);
 					}
 					if (asyncFinished) {
@@ -275,12 +300,16 @@ public class HueDKTest {
 		public void onElementReceived(Class<? extends HueElement> classType, HueElement element) {
 			// TODO Auto-generated method stub
 			switch (classType.getSimpleName()) {
+			case "HueConfig":
+				LOGGER.info(((HueConfig) element).toString());
+				asyncConfigFound = true;
+				break;
 			case "HueLight":
-				LOGGER.info(((HueLight)element).toString());
+				LOGGER.info(((HueLight) element).toString());
 				asyncLightFound = true;
 				break;
 			case "HueGroup":
-				LOGGER.info(((HueGroup)element).toString());
+				LOGGER.info(((HueGroup) element).toString());
 				asyncGroupFound = true;
 				break;
 			}
